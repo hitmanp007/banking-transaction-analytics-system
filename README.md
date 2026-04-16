@@ -1,15 +1,16 @@
-# Banking Transaction Analytics System
+## 🚀 Banking Transaction Analytics System
 
-## Features
-- Data Cleaning using Pandas
+### Features
 - ETL Pipeline (Python → MySQL)
-- Fraud Detection Analysis
-- Database Design (Normalized Schema)
+- Data Cleaning & Preprocessing
+- Fraud Detection Dataset Handling
+- Normalized Database Design
 
-## Tech Stack
-- Python
+### Tech Stack
+- Python (Pandas)
 - MySQL
-- Pandas
+- SQL
 
-## Status
-🚧 In Progress (ETL Debugging Phase)
+### Status
+✅ ETL Completed  
+🚧 SQL Analysis in Progress
