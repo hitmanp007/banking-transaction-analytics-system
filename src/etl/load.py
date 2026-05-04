@@ -3,9 +3,14 @@ from src.utils.db_connection import get_connection
 
 # Load cleaned data
 df = pd.read_csv("data/processed/cleaned_transactions.csv")
-df['Account_ID'] = df['Customer_ID']
-df['Transaction_ID'] = df['Transaction_ID'].str.extract(r'(\d+)').astype(int)
+# ✅ Create realistic customers (grouping)
+df['Customer_ID'] = (df.index // 5) + 1
 
+# ✅ Create multiple accounts per customer
+df['Account_ID'] = df['Customer_ID'] * 10 + (df.index % 2)
+
+# ✅ Unique transaction IDs
+df['Transaction_ID'] = range(1, len(df)+1)
 
 df['Transaction_DateTime'] = pd.to_datetime(
 df['Transaction_Date'].astype(str) + ' ' + df['Transaction_Time']
@@ -38,20 +43,23 @@ conn.commit()
 
 print("Customers inserted successfully ✅")
 # ------------------ INSERT ACCOUNTS ------------------
-accounts = df[['Customer_ID', 'Account_Type', 'Bank_Branch']].drop_duplicates()
+accounts = df[['Account_ID', 'Customer_ID', 'Account_Type', 'Bank_Branch']] \
+            .drop_duplicates(subset=['Account_ID'])
 
-for _, row in accounts.iterrows():
-    cursor.execute("""
-        INSERT INTO accounts (customer_id, account_type, bank_branch)
-        VALUES (%s, %s, %s)
-    """, tuple(row))
+data = [tuple(row) for row in accounts.values]
 
+cursor.executemany("""
+    INSERT INTO accounts (account_id, customer_id, account_type, bank_branch)
+    VALUES (%s, %s, %s, %s)
+""", data)
+
+conn.commit()
 # ------------------ INSERT TRANSACTIONS ------------------
 print("Preparing transactions data...")
 
 transactions = df[['Transaction_ID', 'Account_ID', 'Transaction_DateTime', 'Transaction_Amount',
-                'Transaction_Type', 'Transaction_Currency', 'Transaction_Description']] \
-                .drop_duplicates(subset=['Transaction_ID'])
+                'Transaction_Type', 'Transaction_Currency', 'Transaction_Description']] 
+                
 
 for _, row in transactions.iterrows():
     cursor.execute("""
@@ -71,10 +79,20 @@ for _, row in transactions.iterrows():
 print("Transactions inserted ✅")
 conn.commit()
 # ------------------ INSERT FRAUD ------------------
+print("Preparing fraud data...")
+
 fraud = df[['Transaction_ID', 'Is_Fraud']]
+
+# ✅ convert to pure Python int
 data = [(int(row[0]), int(row[1])) for row in fraud.values]
 
+print("Fraud rows:", len(data))
+
 cursor.executemany("""
-    INSERT IGNORE INTO fraud_detection (transaction_id, is_fraud)
+    INSERT INTO fraud_detection (transaction_id, is_fraud)
     VALUES (%s, %s)
 """, data)
+
+conn.commit()
+
+print("Fraud inserted ✅")
